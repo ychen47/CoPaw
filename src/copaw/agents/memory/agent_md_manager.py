@@ -57,7 +57,11 @@ class AgentMdManager:
         # Auto-append .md extension if not present
         if not md_name.endswith(".md"):
             md_name += ".md"
+        # Strip path components to prevent traversal (e.g. ../SOUL.md)
+        md_name = Path(md_name).name
         file_path = self.working_dir / md_name
+        if not file_path.resolve().is_relative_to(self.working_dir.resolve()):
+            raise ValueError(f"Unsafe file name rejected: {md_name}")
         if not file_path.exists():
             raise FileNotFoundError(f"Working md file not found: {md_name}")
 
@@ -68,7 +72,11 @@ class AgentMdManager:
         # Auto-append .md extension if not present
         if not md_name.endswith(".md"):
             md_name += ".md"
+        # Strip path components to prevent traversal
+        md_name = Path(md_name).name
         file_path = self.working_dir / md_name
+        if not file_path.resolve().is_relative_to(self.working_dir.resolve()):
+            raise ValueError(f"Unsafe file name rejected: {md_name}")
         file_path.write_text(content, encoding="utf-8")
 
     def list_memory_mds(self) -> list[dict]:
@@ -110,7 +118,11 @@ class AgentMdManager:
         # Auto-append .md extension if not present
         if not md_name.endswith(".md"):
             md_name += ".md"
+        # Strip path components to prevent traversal
+        md_name = Path(md_name).name
         file_path = self.memory_dir / md_name
+        if not file_path.resolve().is_relative_to(self.memory_dir.resolve()):
+            raise ValueError(f"Unsafe file name rejected: {md_name}")
         if not file_path.exists():
             raise FileNotFoundError(f"Memory md file not found: {md_name}")
 
@@ -121,7 +133,11 @@ class AgentMdManager:
         # Auto-append .md extension if not present
         if not md_name.endswith(".md"):
             md_name += ".md"
+        # Strip path components to prevent traversal
+        md_name = Path(md_name).name
         file_path = self.memory_dir / md_name
+        if not file_path.resolve().is_relative_to(self.memory_dir.resolve()):
+            raise ValueError(f"Unsafe file name rejected: {md_name}")
         file_path.write_text(content, encoding="utf-8")
 
 

@@ -1,4 +1,15 @@
 # -*- coding: utf-8 -*-
+# Patch sqlite3 with pysqlite3-binary before any chromadb import.
+# Ubuntu 20.04 ships sqlite3 3.31.1, but chromadb requires >= 3.35.0.
+# pysqlite3-binary bundles a recent sqlite3 (>= 3.35) without needing root.
+try:
+    import pysqlite3 as _pysqlite3  # noqa: F401
+    import sys as _sys
+
+    _sys.modules["sqlite3"] = _sys.modules.pop("pysqlite3")
+except ImportError:
+    pass  # pysqlite3-binary not installed; let chromadb raise its own error
+
 import logging
 import os
 import time

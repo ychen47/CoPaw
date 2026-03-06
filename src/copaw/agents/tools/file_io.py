@@ -10,6 +10,20 @@ from agentscope.tool import ToolResponse
 
 from ...constant import WORKING_DIR
 
+# Directories that must never be read or written by the agent.
+# These contain credentials, private keys, and system-level secrets.
+_RESTRICTED_DIRS: tuple[Path, ...] = (
+    Path.home() / ".ssh",
+    Path.home() / ".gnupg",
+)
+
+# Individual files that must never be accessed.
+_RESTRICTED_FILES: frozenset[Path] = frozenset([
+    Path("/etc/shadow"),
+    Path("/etc/gshadow"),
+    Path("/etc/master.passwd"),
+])
+
 
 def _resolve_file_path(file_path: str) -> str:
     """Resolve file path: use absolute path as-is,
@@ -23,9 +37,34 @@ def _resolve_file_path(file_path: str) -> str:
     """
     path = Path(file_path)
     if path.is_absolute():
-        return str(path)
+        # resolve() canonicalises the path (removes ..)
+        return str(path.resolve())
     else:
-        return str(WORKING_DIR / file_path)
+        # resolve() expands '..' so relative traversal (../../etc/passwd)
+        # cannot escape WORKING_DIR silently.
+        return str((WORKING_DIR / file_path).resolve())
+
+
+def _check_path_safety(resolved_path: str) -> str | None:
+    """Return an error message if *resolved_path* accesses a restricted
+    location, or ``None`` if the path is allowed."""
+    p = Path(resolved_path)
+    for restricted in _RESTRICTED_DIRS:
+        try:
+            if p.is_relative_to(restricted):
+                return (
+                    f"Access denied: '{resolved_path}' is inside a restricted "
+                    f"directory ('{restricted}'). "
+                    "Reading or writing credential directories is not allowed."
+                )
+        except ValueError:
+            pass
+    if p in _RESTRICTED_FILES:
+        return (
+            f"Access denied: '{resolved_path}' is a restricted system file "
+            "that must not be read or modified."
+        )
+    return None
 
 
 async def read_file(  # pylint: disable=too-many-return-statements
@@ -48,6 +87,12 @@ async def read_file(  # pylint: disable=too-many-return-statements
     """
 
     file_path = _resolve_file_path(file_path)
+
+    safety_error = _check_path_safety(file_path)
+    if safety_error:
+        return ToolResponse(
+            content=[TextBlock(type="text", text=f"Error: {safety_error}")],
+        )
 
     if not os.path.exists(file_path):
         return ToolResponse(
@@ -164,6 +209,12 @@ async def write_file(
 
     file_path = _resolve_file_path(file_path)
 
+    safety_error = _check_path_safety(file_path)
+    if safety_error:
+        return ToolResponse(
+            content=[TextBlock(type="text", text=f"Error: {safety_error}")],
+        )
+
     try:
         with open(file_path, "w", encoding="utf-8") as file:
             file.write(content)
@@ -272,6 +323,12 @@ async def append_file(
         )
 
     file_path = _resolve_file_path(file_path)
+
+    safety_error = _check_path_safety(file_path)
+    if safety_error:
+        return ToolResponse(
+            content=[TextBlock(type="text", text=f"Error: {safety_error}")],
+        )
 
     try:
         with open(file_path, "a", encoding="utf-8") as file:

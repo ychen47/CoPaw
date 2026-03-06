@@ -5,6 +5,7 @@
 
 import asyncio
 import locale
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -14,6 +15,32 @@ from agentscope.tool import ToolResponse
 from agentscope.message import TextBlock
 
 from copaw.constant import WORKING_DIR
+
+# Patterns for commands that are catastrophically destructive.
+# These are blocked outright — the agent must ask the user to run them manually.
+_DANGEROUS_PATTERNS: list[tuple[str, str]] = [
+    # rm -rf / or rm -rf /* — recursive+force on filesystem root
+    (r"\brm\s+(-\S+\s+)*-\S*[rR]\S*\s+/\s*\**\s*$",
+     "rm -r /  (wipes entire filesystem)"),
+    (r"\brm\s+(-\S+\s+)*-\S*[fF]\S*\s+-\S*[rR]\S*\s+/\s*\**\s*$",
+     "rm -f -r /  (wipes entire filesystem)"),
+    # fork bomb
+    (r":\s*\(\s*\)\s*\{", "fork bomb  :(){ :|:& };:"),
+    # filesystem format
+    (r"\bmkfs\b", "mkfs  (formats a filesystem)"),
+    # overwrite raw disk device with dd
+    (r"\bdd\b.*\bof=/dev/(sd[a-z]|hd[a-z]|nvme\d|vd[a-z])\b",
+     "dd to raw disk device"),
+]
+
+
+def _check_dangerous_command(cmd: str) -> str | None:
+    """Return a human-readable description when *cmd* matches a known
+    catastrophically-destructive pattern, otherwise return ``None``."""
+    for pattern, description in _DANGEROUS_PATTERNS:
+        if re.search(pattern, cmd, re.IGNORECASE | re.DOTALL):
+            return description
+    return None
 
 
 def _execute_subprocess_sync(
@@ -95,6 +122,23 @@ async def execute_shell_command(
     """
 
     cmd = (command or "").strip()
+
+    # Refuse catastrophically destructive commands before irreversible damage.
+    danger = _check_dangerous_command(cmd)
+    if danger:
+        return ToolResponse(
+            content=[
+                TextBlock(
+                    type="text",
+                    text=(
+                        f"⛔ Command blocked — dangerous pattern detected: {danger}\n"
+                        "This command is too destructive to execute automatically. "
+                        "If this is truly necessary, ask the user to run it manually "
+                        "in their own terminal."
+                    ),
+                ),
+            ],
+        )
 
     # Set working directory
     working_dir = cwd if cwd is not None else WORKING_DIR

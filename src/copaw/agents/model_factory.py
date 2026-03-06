@@ -389,6 +389,31 @@ def _create_remote_model_instance(
         "https://coding.dashscope.aliyuncs.com/v1",
     ]
 
+    # Detect Azure OpenAI provider
+    is_azure = False
+    try:
+        providers_data = load_providers_json()
+        is_azure = providers_data.active_llm.provider_id == "azure-openai"
+    except Exception:
+        pass
+
+    if is_azure:
+        # Azure OpenAI requires AzureOpenAI client (client_type="azure") with
+        # azure_endpoint and api_version instead of a plain base_url.
+        api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
+        client_kwargs = {
+            "azure_endpoint": base_url,
+            "api_version": api_version,
+        }
+        model = chat_model_class(
+            model_name,
+            api_key=api_key,
+            stream=True,
+            client_type="azure",
+            client_kwargs=client_kwargs,
+        )
+        return model
+
     client_kwargs = {"base_url": base_url}
 
     if base_url in dashscope_base_urls:
