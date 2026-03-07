@@ -20,16 +20,22 @@ from .file_handling import download_file_from_base64, download_file_from_url
 
 logger = logging.getLogger(__name__)
 
-# Only allow local paths under this dir (channels save media here).
+# Only allow local paths under these dirs (channels save media here; uploads dir for user uploads).
 _ALLOWED_MEDIA_ROOT = WORKING_DIR / "media"
+_ALLOWED_UPLOAD_ROOT = WORKING_DIR / "uploads"
 
 
 def _is_allowed_media_path(path: str) -> bool:
-    """True if path is a file under _ALLOWED_MEDIA_ROOT."""
+    """True if path is a file under _ALLOWED_MEDIA_ROOT or _ALLOWED_UPLOAD_ROOT."""
     try:
         resolved = Path(path).expanduser().resolve()
-        root = _ALLOWED_MEDIA_ROOT.resolve()
-        return resolved.is_file() and str(resolved).startswith(str(root))
+        allowed_roots = [
+            str(_ALLOWED_MEDIA_ROOT.resolve()),
+            str(_ALLOWED_UPLOAD_ROOT.resolve()),
+        ]
+        return resolved.is_file() and any(
+            str(resolved).startswith(r) for r in allowed_roots
+        )
     except Exception:
         return False
 
@@ -74,6 +80,11 @@ async def _process_single_file_block(
                             "Rejected file:// URL outside allowed media dir",
                         )
                         return None
+                    logger.debug(
+                        "Resolved file:// URL to local path: %s",
+                        local_path,
+                    )
+                    return local_path
                 except Exception:
                     return None
             local_path = await download_file_from_url(

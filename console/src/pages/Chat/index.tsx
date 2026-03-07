@@ -135,6 +135,26 @@ export default function ChatPage() {
       customToolRenderConfig: {
         "weather search mock": Weather,
       },
+      sender: {
+        ...optionsConfig?.sender,
+        attachments: {
+          customRequest: (options: Parameters<NonNullable<import("antd").UploadProps["customRequest"]>>[0]) => {
+            const formData = new FormData();
+            formData.append("file", options.file as File);
+            const token = getApiToken();
+            const headers: Record<string, string> = {};
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+            fetch(getApiUrl("/files/upload"), {
+              method: "POST",
+              headers,
+              body: formData,
+            })
+              .then((res) => res.json())
+              .then((data) => options.onSuccess?.(data))
+              .catch((err) => options.onError?.(err));
+          },
+        },
+      },
     } as unknown as IAgentScopeRuntimeWebUIOptions;
   }, [optionsConfig]);
 
