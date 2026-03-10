@@ -110,8 +110,11 @@ def _build_provider_info(
     summary="List all providers",
 )
 async def list_all_providers() -> List[ProviderInfo]:
-    data = load_providers_json()
-    return [_build_provider_info(p, data) for p in list_providers()]
+    try:
+        data = load_providers_json()
+        return [_build_provider_info(p, data) for p in list_providers()]
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @router.put(
@@ -347,8 +350,11 @@ async def remove_model_endpoint(
     summary="Get active LLM",
 )
 async def get_active_models() -> ActiveModelsInfo:
-    data = load_providers_json()
-    return ActiveModelsInfo(active_llm=data.active_llm)
+    try:
+        data = load_providers_json()
+        return ActiveModelsInfo(active_llm=data.active_llm)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @router.put(
