@@ -248,6 +248,7 @@
     "allowFrom": "Allowlist Users",
     "allowFromTooltip": "List of user IDs allowed to interact with the bot (format: nickname#last4, e.g. John#1234)",
     "allowFromPlaceholder": "Enter user ID and press Enter to add",
+    "allowFromTooltipTelegram": "Numeric chat_id (e.g. 123456789) or @username (e.g. @alice). Get your ID from @userinfobot on Telegram.",
     "twilioAccountSid": "Twilio Account SID",
     "twilioAuthToken": "Twilio Auth Token",
     "phoneNumber": "Phone Number",

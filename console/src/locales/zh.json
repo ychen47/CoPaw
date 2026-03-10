@@ -248,6 +248,7 @@
     "allowFrom": "白名单用户",
     "allowFromTooltip": "允许与机器人交互的用户 ID 列表（格式：昵称#后4位，如 张三#1234）",
     "allowFromPlaceholder": "输入用户ID后按回车添加",
+    "allowFromTooltipTelegram": "数字 chat_id（如 123456789）或 @用户名（如 @alice）。可通过 Telegram 中的 @userinfobot 获取自己的 ID。",
     "twilioAccountSid": "Twilio 账户 SID",
     "twilioAuthToken": "Twilio 认证令牌",
     "phoneNumber": "电话号码",

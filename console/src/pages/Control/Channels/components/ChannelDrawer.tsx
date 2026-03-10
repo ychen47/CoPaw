@@ -198,6 +198,44 @@ export function ChannelDrawer({
             >
               <Switch />
             </Form.Item>
+            <Form.Item
+              name="dm_policy"
+              label={t("channels.dmPolicy")}
+              tooltip={t("channels.dmPolicyTooltip")}
+              initialValue="open"
+            >
+              <Select
+                options={[
+                  { value: "open", label: t("channels.policyOpen") },
+                  { value: "allowlist", label: t("channels.policyAllowlist") },
+                ]}
+              />
+            </Form.Item>
+            <Form.Item
+              name="group_policy"
+              label={t("channels.groupPolicy")}
+              tooltip={t("channels.groupPolicyTooltip")}
+              initialValue="open"
+            >
+              <Select
+                options={[
+                  { value: "open", label: t("channels.policyOpen") },
+                  { value: "allowlist", label: t("channels.policyAllowlist") },
+                ]}
+              />
+            </Form.Item>
+            <Form.Item
+              name="allow_from"
+              label={t("channels.allowFrom")}
+              tooltip={t("channels.allowFromTooltipTelegram")}
+              initialValue={[]}
+            >
+              <Select
+                mode="tags"
+                placeholder={t("channels.allowFromPlaceholder")}
+                tokenSeparators={[","]}
+              />
+            </Form.Item>
           </>
         );
       case "voice":
