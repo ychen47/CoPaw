@@ -68,12 +68,23 @@ class QQConfig(BaseChannelConfig):
 
 
 class TelegramConfig(BaseChannelConfig):
-    """Telegram channel: bot_token from BotFather; optional proxy."""
+    """Telegram channel: bot_token from BotFather; optional proxy.
+
+    Security / allowlist:
+        dm_policy    - "open" (default) or "allowlist" for direct messages
+        group_policy - "open" (default) or "allowlist" for group messages
+        allow_from   - list of chat_ids or usernames allowed when policy is
+                       "allowlist"; usernames should be prefixed with "@"
+                       (e.g. "@alice") and numeric chat_ids as strings.
+    """
 
     bot_token: str = ""
     http_proxy: str = ""
     http_proxy_auth: str = ""
     show_typing: Optional[bool] = None
+    dm_policy: Literal["open", "allowlist"] = "open"
+    group_policy: Literal["open", "allowlist"] = "open"
+    allow_from: List[str] = Field(default_factory=list)
 
 
 class ConsoleConfig(BaseChannelConfig):

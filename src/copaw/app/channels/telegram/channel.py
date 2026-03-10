@@ -225,6 +225,9 @@ class TelegramChannel(BaseChannel):
         show_typing: bool = True,
         filter_tool_messages: bool = False,
         filter_thinking: bool = False,
+        dm_policy: str = "open",
+        group_policy: str = "open",
+        allow_from: Optional[list] = None,
     ):
         super().__init__(
             process,
@@ -242,6 +245,9 @@ class TelegramChannel(BaseChannel):
             Path(media_dir).expanduser() if media_dir else _DEFAULT_MEDIA_DIR
         )
         self._show_typing = show_typing
+        self.dm_policy = dm_policy or "open"
+        self.group_policy = group_policy or "open"
+        self.allow_from: set = set(allow_from or [])
         self._typing_tasks: dict[str, asyncio.Task] = {}
         self._task: Optional[asyncio.Task] = None
         self._application = None
@@ -261,6 +267,39 @@ class TelegramChannel(BaseChannel):
                 logger.debug(
                     "telegram: channel disabled (enabled=false in config)",
                 )
+
+    def _check_allowlist(
+        self,
+        chat_id: str,
+        username: str,
+        is_group: bool,
+    ) -> tuple[bool, Optional[str]]:
+        """Check if sender is allowed based on dm_policy/group_policy.
+
+        Matching is done against chat_id (numeric string) or @username.
+
+        Returns:
+            (allowed, error_message): allowed=True if message should be
+            processed; error_message contains the rejection text if not.
+        """
+        policy = self.group_policy if is_group else self.dm_policy
+        if policy == "open":
+            return True, None
+
+        # Accept match on numeric chat_id or @username
+        uname_key = f"@{username}" if username and not username.startswith("@") else username
+        if chat_id in self.allow_from or (uname_key and uname_key in self.allow_from):
+            return True, None
+
+        identifier = uname_key or chat_id
+        msg = (
+            "抱歉，您没有权限使用此机器人。请联系管理员添加您的 ID 到白名单。\n"
+            f"您的 ID：{identifier}\n"
+            "Sorry, you are not authorized to use this bot. "
+            "Please contact the administrator to add your ID to the "
+            f"allowlist. Your ID: {identifier}"
+        )
+        return False, msg
 
     def _build_application(self):
         from telegram import Update
@@ -310,6 +349,28 @@ class TelegramChannel(BaseChannel):
             if has_bot_command:
                 meta["has_bot_command"] = True
             chat_id = meta.get("chat_id", "")
+            username = meta.get("username", "")
+            is_group = meta.get("is_group", False)
+            allowed, rejection_msg = self._check_allowlist(
+                chat_id, username, is_group
+            )
+            if not allowed:
+                if rejection_msg and chat_id:
+                    try:
+                        await context.bot.send_message(
+                            chat_id=chat_id, text=rejection_msg
+                        )
+                    except Exception:
+                        logger.debug(
+                            "telegram: failed to send rejection to chat_id=%s",
+                            chat_id,
+                        )
+                logger.info(
+                    "telegram: message from chat_id=%s username=%s blocked by allowlist",
+                    chat_id,
+                    username,
+                )
+                return
             user = getattr(
                 update.message or getattr(update, "edited_message"),
                 "from_user",
@@ -348,6 +409,13 @@ class TelegramChannel(BaseChannel):
             bot_prefix=os.getenv("TELEGRAM_BOT_PREFIX", ""),
             on_reply_sent=on_reply_sent,
             show_typing=os.getenv("TELEGRAM_SHOW_TYPING", "1") == "1",
+            dm_policy=os.getenv("TELEGRAM_DM_POLICY", "open"),
+            group_policy=os.getenv("TELEGRAM_GROUP_POLICY", "open"),
+            allow_from=[
+                s.strip()
+                for s in os.getenv("TELEGRAM_ALLOW_FROM", "").split(",")
+                if s.strip()
+            ],
         )
 
     @classmethod
@@ -382,6 +450,9 @@ class TelegramChannel(BaseChannel):
                 show_typing=channel_show_typing
                 if channel_show_typing is not None
                 else True,
+                dm_policy=config.get("dm_policy", "open"),
+                group_policy=config.get("group_policy", "open"),
+                allow_from=list(config.get("allow_from") or []),
             )
         return cls(
             process=process,
@@ -397,6 +468,9 @@ class TelegramChannel(BaseChannel):
             show_typing=channel_show_typing
             if channel_show_typing is not None
             else True,
+            dm_policy=config.dm_policy or "open",
+            group_policy=config.group_policy or "open",
+            allow_from=list(config.allow_from or []),
         )
 
     def _chunk_text(self, text: str) -> list[str]:
