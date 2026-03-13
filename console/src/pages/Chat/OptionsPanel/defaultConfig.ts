@@ -20,10 +20,10 @@ const defaultConfig = {
     avatar: `${import.meta.env.BASE_URL}copaw-symbol.svg`,
     prompts: [
       {
-        value: "让我们开启一段新的旅程吧！",
+        value: "Let's start a new journey!",
       },
       {
-        value: "能告诉我你有哪些技能吗？",
+        value: "Can you tell me what skills you have?",
       },
     ],
   },

@@ -26,7 +26,7 @@ declare const window: CustomWindow;
 type OptionsConfig = DefaultConfig;
 
 export default function ChatPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [showModelPrompt, setShowModelPrompt] = useState(false);
   const [optionsConfig] = useLocalStorageState<OptionsConfig>(
@@ -118,6 +118,14 @@ export default function ChatPage() {
 
     return {
       ...optionsConfig,
+      welcome: {
+        ...optionsConfig.welcome,
+        description: t("chatWelcome.description"),
+        prompts: [
+          { value: t("chatWelcome.prompt1") },
+          { value: t("chatWelcome.prompt2") },
+        ],
+      },
       session: {
         multiple: true,
         api: sessionApi,
@@ -156,7 +164,7 @@ export default function ChatPage() {
         },
       },
     } as unknown as IAgentScopeRuntimeWebUIOptions;
-  }, [optionsConfig]);
+  }, [optionsConfig, i18n.language, t]);
 
   return (
     <div style={{ height: "100%", width: "100%" }}>

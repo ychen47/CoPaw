@@ -464,6 +464,11 @@
     "saveFailed": "Failed to save configuration",
     "loadFailed": "Failed to load configuration"
   },
+  "chatWelcome": {
+    "description": "I am a helpful assistant that can help you with your questions.",
+    "prompt1": "Let's start a new journey!",
+    "prompt2": "Can you tell me what skills you have?"
+  },
   "modelConfig": {
     "promptTitle": "LLM Model Required",
     "promptMessage": "Chat requires an LLM model to function. Without a configured model, conversations and messages cannot be sent to the backend for processing and storage, and will be lost after a page refresh. Would you like to configure a model now?",
