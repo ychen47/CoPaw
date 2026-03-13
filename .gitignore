@@ -83,3 +83,4 @@ openspec
 CLAUDE.md
 *.tmp
 downloads/sample.csv
+src/copaw/console/assets/
